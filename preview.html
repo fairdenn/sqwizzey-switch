@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swizzey Switch — Keyboard Layout Indicator for Windows 11</title>
+<style>
+/* ── Reset & Base ────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:       #0078d4;
+  --accent-h:     #106ebe;
+  --accent-light: #4ca3e0;
+  --page-bg:      #0a0a0a;
+  --gap:          88px;
+  --font:         'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--page-bg);
+  color: #e4e4e4;
+  min-width: 1200px;
+  overflow-x: hidden;
+}
+
+/* ── Hero ────────────────────────────────────────────────────── */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px 0;
+  gap: 14px;
+  text-align: center;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0,120,212,0.14);
+  border: 1px solid rgba(0,120,212,0.38);
+  border-radius: 100px;
+  padding: 5px 16px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent-light);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  animation: dot-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .35; transform: scale(.65); }
+}
+
+.hero h1 {
+  font-size: 68px;
+  font-weight: 700;
+  letter-spacing: -2px;
+  line-height: 1.02;
+  background: linear-gradient(140deg, #ffffff 25%, #7ec8ff 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 20px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.42);
+  max-width: 540px;
+  line-height: 1.55;
+}
+
+/* ── Desktop Mockup Wrapper ──────────────────────────────────── */
+.desktop-wrap {
+  margin: 56px auto 0;
+  max-width: 1080px;
+  padding: 0 40px;
+}
+
+.desktop-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 4px 8px rgba(0,0,0,0.6),
+    0 32px 80px rgba(0,0,0,0.75),
+    0 0 60px rgba(0,120,212,0.10);
+}
+
+/* ── Win11 Wallpaper ─────────────────────────────────────────── */
+.win11-wallpaper {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg,
+    #0a1628 0%,
+    #122040 18%,
+    #1a3a5c 35%,
+    #0d2137 52%,
+    #1e1b4b 72%,
+    #130c2e 88%,
+    #0f172a 100%);
+  overflow: hidden;
+}
+
+/* Bloom blobs — replicate the Win11 "Bloom" wallpaper light shapes */
+.win11-wallpaper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 65% at 18% 72%,  rgba(0,90,200,0.55)   0%, transparent 65%),
+    radial-gradient(ellipse 40% 55% at 80% 30%,  rgba(90,60,220,0.40)  0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(0,60,160,0.50)   0%, transparent 55%),
+    radial-gradient(ellipse 35% 45% at 90% 80%,  rgba(60,20,160,0.30)  0%, transparent 60%),
+    radial-gradient(ellipse 30% 40% at 10% 20%,  rgba(0,80,180,0.25)   0%, transparent 55%);
+}
+
+.win11-wallpaper::after {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 55% 60%,  rgba(30,100,255,0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 80% at 25% 40%,  rgba(100,60,255,0.10) 0%, transparent 65%);
+  mix-blend-mode: screen;
+}
+
+/* Extra shimmer highlight — the central bright bloom */
+.wallpaper-bloom {
+  position: absolute;
+  width: 42%; height: 55%;
+  top: 22%; left: 30%;
+  background: radial-gradient(ellipse at 50% 40%,
+    rgba(60,140,255,0.22) 0%,
+    rgba(100,80,255,0.10) 40%,
+    transparent 75%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+/* ── Taskbar ─────────────────────────────────────────────────── */
+.taskbar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 48px;
+  background: rgba(32,32,32,0.85);
+  backdrop-filter: blur(30px) saturate(160%);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Center cluster of icons (Start + Search + pinned apps) */
+.taskbar-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Start button — Win11 coloured grid */
+.start-btn {
+  width: 40px; height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.start-btn:hover { background: rgba(255,255,255,0.08); }
+
+/* Win11 Start logo: 4 coloured squares */
+.win11-logo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 17px; height: 17px;
+}
+
+.win11-logo-q {
+  border-radius: 1.5px;
+}
+
+.win11-logo-q.tl { background: #f25022; } /* red — top-left  */
+.win11-logo-q.tr { background: #7fba00; } /* green — top-right */
+.win11-logo-q.bl { background: #00a4ef; } /* blue — bottom-left */
+.win11-logo-q.br { background: #ffb900; } /* yellow — bottom-right */
+
+/* Search bar */
+.taskbar-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 220px;
+  height: 34px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 4px;
+  padding: 0 12px;
+  cursor: text;
+  flex-shrink: 0;
+}
+
+.taskbar-search:hover {
+  background: rgba(255,255,255,0.09);
+}
+
+.search-icon {
+  width: 14px; height: 14px;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.search-text {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  white-space: nowrap;
+}
+
+/* Task View button */
+.taskview-btn {
+  width: 40px; height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.taskview-btn svg { opacity: 0.55; }
+
+/* Pinned taskbar app icons */
+.pinned-icon {
+  width: 40px; height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pinned-icon svg { opacity: 0.70; }
+
+/* System tray (right side) */
+.taskbar-tray {
+  position: absolute;
+  right: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.tray-chevron {
+  width: 22px; height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+}
+
+.tray-chevron svg { opacity: 0.5; }
+
+.tray-icons-cluster {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  height: 36px;
+  border-radius: 3px;
+}
+
+.tray-icon-btn {
+  width: 20px; height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+}
+
+/* Swizzey tray icon — "S" circle + lang badge */
+.tray-swizzey {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px;
+  height: 36px;
+  border-radius: 3px;
+}
+
+.tray-s-circle {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.tray-lang-text {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.78);
+  letter-spacing: 0.04em;
+}
+
+/* System indicators cluster */
+.tray-sys {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  height: 36px;
+  border-radius: 3px;
+}
+
+.tray-sys-icon { opacity: 0.58; }
+
+/* Clock */
+.taskbar-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 12px 0 6px;
+  height: 52px;
+  border-radius: 3px;
+  cursor: default;
+  min-width: 68px;
+}
+
+.clock-time {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.88);
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.clock-date {
+  font-size: 11px;
+  color: rgba(255,255,255,0.68);
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+/* Notification dot */
+.notif-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  position: absolute;
+  bottom: 8px; right: 10px;
+}
+
+/* ── Overlay Card (Swizzey Switch) ───────────────────────────── */
+.overlay-card {
+  position: absolute;
+  width: 110px;
+  height: 80px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  user-select: none;
+  pointer-events: none;
+  background: rgba(30,30,30,0.88);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.50),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+  /* No backdrop-filter here — pure CSS simulation */
+}
+
+/* EN card — centred, main hero */
+.overlay-en {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -62%);
+  animation:
+    en-appear  0.85s cubic-bezier(0.34,1.48,0.64,1) 0.3s both,
+    en-breathe 3.2s ease-in-out 1.4s infinite;
+}
+
+@keyframes en-appear {
+  from { opacity: 0; transform: translate(-50%, -62%) scale(0.70); }
+  to   { opacity: 1; transform: translate(-50%, -62%) scale(1); }
+}
+
+@keyframes en-breathe {
+  0%,100% { transform: translate(-50%, -62%) scale(1.000); box-shadow: 0 8px 32px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.07); }
+  50%      { transform: translate(-50%, -62%) scale(1.028); box-shadow: 0 12px 44px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.07); }
+}
+
+/* RU card — offset, secondary / dimmed */
+.overlay-ru {
+  top: 50%;
+  left: 50%;
+  transform: translate(26%, -10%);
+  opacity: 0;
+  animation:
+    ru-appear  0.85s cubic-bezier(0.34,1.48,0.64,1) 0.65s both,
+    ru-breathe 3.2s ease-in-out 1.75s infinite;
+  /* Slightly smaller to suggest it's "behind" */
+  font-size: 28px;
+  width: 96px; height: 70px;
+  border-radius: 15px;
+  background: rgba(30,30,30,0.72);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+@keyframes ru-appear {
+  from { opacity: 0; transform: translate(26%, -10%) scale(0.70); }
+  to   { opacity: 0.75; transform: translate(26%, -10%) scale(1); }
+}
+
+@keyframes ru-breathe {
+  0%,100% { transform: translate(26%, -10%) scale(1.000); opacity: 0.75; }
+  50%      { transform: translate(26%, -10%) scale(1.028); opacity: 0.85; }
+}
+
+/* ── Tray Popup (Win11 Mica style) ───────────────────────────── */
+.tray-popup {
+  position: absolute;
+  bottom: 56px;
+  right: 8px;
+  width: 210px;
+  background: rgba(32,32,32,0.78);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.4),
+    0 8px 32px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(0,0,0,0.25);
+  animation: popup-rise 0.45s cubic-bezier(0.22,1,0.36,1) 1.4s both;
+  font-size: 11.5px;
+}
+
+@keyframes popup-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.popup-header {
+  padding: 11px 14px 9px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.popup-logo {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.popup-app-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+}
+
+.popup-app-sub {
+  font-size: 9.5px;
+  color: rgba(255,255,255,0.38);
+  margin-top: 1px;
+}
+
+.popup-item {
+  padding: 7px 12px 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255,255,255,0.82);
+  cursor: default;
+  border-radius: 0;
+  margin: 2px 3px;
+  border-radius: 4px;
+}
+
+.popup-item.first {
+  font-weight: 600;
+  color: rgba(255,255,255,0.96);
+}
+
+.popup-item-icon {
+  width: 14px; height: 14px;
+  opacity: 0.65;
+  flex-shrink: 0;
+}
+
+.popup-check {
+  width: 11px; height: 11px;
+  border: 1.5px solid rgba(0,120,212,0.65);
+  border-radius: 3px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.popup-check.on {
+  background: rgba(0,120,212,0.25);
+  border-color: var(--accent-light);
+}
+
+.popup-check.on::after {
+  content: "";
+  display: block;
+  width: 5px; height: 5px;
+  background: var(--accent-light);
+  border-radius: 1.5px;
+}
+
+.popup-sep {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 2px 0;
+}
+
+.popup-item.danger { color: rgba(255,85,85,0.88); }
+
+/* ── Section Layout ──────────────────────────────────────────── */
+.section {
+  max-width: 1080px;
+  margin: var(--gap) auto 0;
+  padding: 0 40px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.section-desc {
+  font-size: 16px;
+  color: rgba(255,255,255,0.38);
+  line-height: 1.65;
+  max-width: 580px;
+}
+
+/* ── Theme Showcase ──────────────────────────────────────────── */
+.themes-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 36px;
+}
+
+.theme-card {
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 16 / 7;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Dark theme desktop mini-mock */
+.theme-card-dark {
+  background: linear-gradient(135deg, #0a1628 0%, #122040 35%, #1a3a5c 60%, #0d2137 100%);
+}
+
+/* Light theme desktop mini-mock (Windows light mode + blue accent wallpaper) */
+.theme-card-light {
+  background: linear-gradient(140deg, #c8dff8 0%, #9fc3ef 35%, #b8d4f2 65%, #daeaff 100%);
+}
+
+.theme-card-label {
+  position: absolute;
+  top: 12px; left: 16px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.50;
+}
+
+.theme-card-dark .theme-card-label  { color: #fff; }
+.theme-card-light .theme-card-label { color: #0a2044; }
+
+/* Mini overlay card inside theme card */
+.mini-card {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 76px; height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.mini-card.dark {
+  background: rgba(30,30,30,0.88);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.07);
+  color: #fff;
+}
+
+.mini-card.light {
+  background: rgba(242,242,242,0.92);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.9);
+  color: #111;
+}
+
+/* Mini taskbar inside theme cards */
+.mini-taskbar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 18%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.theme-card-dark  .mini-taskbar { background: rgba(32,32,32,0.85); border-top: 1px solid rgba(255,255,255,0.07); }
+.theme-card-light .mini-taskbar { background: rgba(240,245,255,0.80); border-top: 1px solid rgba(0,0,0,0.08); }
+
+.mini-tb-sq {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+}
+
+.theme-card-dark  .mini-tb-sq { background: rgba(255,255,255,0.35); }
+.theme-card-light .mini-tb-sq { background: rgba(30,70,160,0.30); }
+
+/* Win11 mini start logo in theme cards */
+.mini-win-logo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5px;
+  width: 12px; height: 12px;
+  margin-right: 2px;
+}
+
+.mini-win-logo span { border-radius: 1px; }
+.mini-win-logo .tl { background: #f25022; }
+.mini-win-logo .tr { background: #7fba00; }
+.mini-win-logo .bl { background: #00a4ef; }
+.mini-win-logo .br { background: #ffb900; }
+
+/* ── Feature Pills ───────────────────────────────────────────── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 36px;
+}
+
+.feature-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: rgba(255,255,255,0.62);
+  transition: border-color .18s, background .18s, color .18s;
+}
+
+.feature-pill:hover {
+  background: rgba(0,120,212,0.10);
+  border-color: rgba(0,120,212,0.30);
+  color: rgba(255,255,255,0.88);
+}
+
+.fp-icon {
+  width: 18px; height: 18px;
+  color: var(--accent-light);
+  flex-shrink: 0;
+}
+
+/* ── Tray Section ────────────────────────────────────────────── */
+.tray-showcase {
+  margin-top: 36px;
+  display: flex;
+  gap: 44px;
+  align-items: flex-start;
+}
+
+/* Stand-alone tray menu mockup */
+.tray-mockup {
+  flex-shrink: 0;
+  width: 230px;
+  background: rgba(32,32,32,0.78);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.35);
+  font-size: 12px;
+}
+
+.tray-mockup-header {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tm-logo {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+
+.tm-name { font-size: 12px; font-weight: 600; color: #fff; }
+.tm-ver  { font-size: 10px; color: rgba(255,255,255,0.32); margin-top: 1px; }
+
+.tm-item {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.80);
+  cursor: default;
+  margin: 2px 3px;
+  border-radius: 4px;
+}
+
+.tm-item.bold { font-weight: 600; color: #fff; background: rgba(0,120,212,0.12); }
+.tm-item.danger { color: rgba(255,85,85,0.85); }
+
+.tm-icon {
+  width: 15px; height: 15px;
+  opacity: 0.62;
+  flex-shrink: 0;
+}
+
+.tm-check {
+  width: 13px; height: 13px;
+  border-radius: 3px;
+  border: 1.5px solid rgba(0,120,212,0.55);
+  margin-left: auto;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.tm-check.on {
+  background: rgba(0,120,212,0.22);
+  border-color: var(--accent-light);
+}
+
+.tm-check.on::after {
+  content: "";
+  display: block;
+  width: 6px; height: 6px;
+  background: var(--accent-light);
+  border-radius: 1.5px;
+}
+
+.tm-sep { height: 1px; background: rgba(255,255,255,0.08); margin: 3px 0; }
+
+.tray-desc { flex: 1; padding-top: 2px; }
+.tray-desc h3 { font-size: 22px; font-weight: 600; color: #fff; margin-bottom: 10px; letter-spacing: -0.3px; }
+.tray-desc p  { font-size: 14.5px; color: rgba(255,255,255,0.38); line-height: 1.65; margin-bottom: 16px; }
+
+.tray-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.td-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.tray-detail span { font-size: 14px; color: rgba(255,255,255,0.50); line-height: 1.55; }
+.tray-detail strong { color: rgba(255,255,255,0.80); }
+
+/* ── Settings Window (Win11 Style) ───────────────────────────── */
+.settings-showcase {
+  margin-top: 36px;
+  background: rgba(28,28,28,0.97);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+}
+
+/* Win11 title bar — no macOS traffic lights */
+.settings-titlebar {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  background: rgba(20,20,20,0.98);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  height: 32px;
+  user-select: none;
+}
+
+.titlebar-icon {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.titlebar-icon .s-badge {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.titlebar-title {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.78);
+  flex: 1;
+  padding-left: 2px;
+}
+
+/* Win11 caption buttons */
+.caption-btns {
+  display: flex;
+  height: 100%;
+}
+
+.cap-btn {
+  width: 46px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.cap-btn svg { opacity: 0.65; }
+.cap-btn:hover { background: rgba(255,255,255,0.08); }
+.cap-btn:hover svg { opacity: 0.90; }
+.cap-btn.close-btn:hover { background: #c42b1c; }
+.cap-btn.close-btn:hover svg { opacity: 1; }
+
+.settings-body {
+  padding: 20px 22px 18px;
+  display: flex;
+  gap: 18px;
+}
+
+.settings-group {
+  flex: 1;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sg-header {
+  padding: 7px 12px 6px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.50);
+  letter-spacing: 0.04em;
+}
+
+.sg-body { padding: 12px; }
+
+.sg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sg-row:last-child { margin-bottom: 0; }
+
+.sg-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.42);
+  width: 64px;
+  flex-shrink: 0;
+}
+
+/* Win11 slider */
+.fake-slider {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 4px;
+  position: relative;
+}
+
+.fake-slider::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.fake-slider.s40::before  { width: 40%; }
+.fake-slider.s65::before  { width: 65%; }
+.fake-slider.s80::before  { width: 80%; }
+
+.slider-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px; height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+}
+
+.fake-slider.s40 .slider-thumb { left: 40%; }
+.fake-slider.s65 .slider-thumb { left: 65%; }
+.fake-slider.s80 .slider-thumb { left: 80%; }
+
+.sg-val {
+  font-size: 10px;
+  color: rgba(255,255,255,0.30);
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Win11 ComboBox */
+.fake-combo {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.78);
+  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: default;
+}
+
+.combo-arrow { font-size: 7.5px; opacity: 0.38; }
+
+/* Win11 checkbox */
+.fake-cb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 9px;
+  cursor: default;
+}
+
+.fake-cb:last-child { margin-bottom: 0; }
+
+.cb-box {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.cb-box.checked {
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cb-box.checked::after {
+  content: "";
+  display: block;
+  width: 8px; height: 5px;
+  border-left: 1.5px solid #fff;
+  border-bottom: 1.5px solid #fff;
+  transform: rotate(-45deg) translate(1px,-1px);
+}
+
+.cb-box.unchecked {
+  border: 1.5px solid rgba(255,255,255,0.28);
+}
+
+/* Settings footer — Win11 aligned-right buttons */
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 22px 18px;
+}
+
+.win11-btn {
+  padding: 5px 20px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: var(--font);
+  border: 1px solid transparent;
+  cursor: default;
+}
+
+.win11-btn.secondary {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.78);
+}
+
+.win11-btn.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: rgba(255,255,255,0.10);
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.divider {
+  max-width: 1080px;
+  margin: var(--gap) auto 0;
+  padding: 0 40px;
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer {
+  margin-top: var(--gap);
+  padding: 40px;
+  text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.22);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.footer strong { color: rgba(255,255,255,0.52); }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════ -->
+<header class="hero">
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Windows 11 App
+  </div>
+  <h1>Swizzey Switch</h1>
+  <p class="hero-sub">A lightweight overlay indicator that shows your current keyboard layout the moment you switch — beautiful, instant, and always out of the way.</p>
+</header>
+
+<!-- ════════════════════════════════════════════
+     DESKTOP MOCKUP
+════════════════════════════════════════════ -->
+<div class="desktop-wrap">
+  <div class="desktop-frame">
+
+    <!-- Win11 wallpaper -->
+    <div class="win11-wallpaper">
+      <div class="wallpaper-bloom"></div>
+    </div>
+
+    <!-- EN overlay card — centred, main -->
+    <div class="overlay-card overlay-en">EN</div>
+
+    <!-- RU overlay card — offset, secondary -->
+    <div class="overlay-card overlay-ru">RU</div>
+
+    <!-- Tray context menu (Mica/Acrylic popup) -->
+    <div class="tray-popup">
+      <div class="popup-header">
+        <div class="popup-logo">S</div>
+        <div>
+          <div class="popup-app-name">Swizzey Switch</div>
+          <div class="popup-app-sub">Layout indicator</div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="popup-item first">
+        <svg class="popup-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Settings&hellip;
+      </div>
+
+      <div class="popup-sep"></div>
+
+      <!-- Disable Overlay -->
+      <div class="popup-item">
+        <svg class="popup-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+        Disable Overlay
+      </div>
+
+      <!-- Start with Windows -->
+      <div class="popup-item">
+        <svg class="popup-item-icon" viewBox="0 0 16 16" fill="currentColor" stroke="none">
+          <path d="M0 0h7v7H0V0zm9 0h7v7H9V0zM0 9h7v7H0V9zm9 0h7v7H9V9z" opacity=".7"/>
+        </svg>
+        Start with Windows
+        <div class="popup-check on"></div>
+      </div>
+
+      <div class="popup-sep"></div>
+
+      <!-- Exit -->
+      <div class="popup-item danger">
+        <svg class="popup-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Exit
+      </div>
+    </div>
+
+    <!-- ── Win11 Taskbar ───────────────────────────────── -->
+    <div class="taskbar">
+
+      <!-- Centred cluster -->
+      <div class="taskbar-center">
+
+        <!-- Start button with Win11 coloured logo -->
+        <div class="start-btn">
+          <div class="win11-logo">
+            <div class="win11-logo-q tl"></div>
+            <div class="win11-logo-q tr"></div>
+            <div class="win11-logo-q bl"></div>
+            <div class="win11-logo-q br"></div>
+          </div>
+        </div>
+
+        <!-- Search bar -->
+        <div class="taskbar-search">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <span class="search-text">Search</span>
+        </div>
+
+        <!-- Task View -->
+        <div class="taskview-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="9" height="9" rx="1.5"/>
+            <rect x="13" y="2" width="9" height="9" rx="1.5"/>
+            <rect x="2" y="13" width="9" height="9" rx="1.5"/>
+            <rect x="13" y="13" width="9" height="9" rx="1.5"/>
+          </svg>
+        </div>
+
+        <!-- Pinned apps -->
+        <!-- File Explorer -->
+        <div class="pinned-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+
+        <!-- Edge -->
+        <div class="pinned-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+        </div>
+
+        <!-- Mail -->
+        <div class="pinned-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+
+        <!-- Store / Settings -->
+        <div class="pinned-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+
+      </div><!-- /taskbar-center -->
+
+      <!-- System Tray (right-aligned) -->
+      <div class="taskbar-tray">
+
+        <!-- Expand hidden icons chevron -->
+        <div class="tray-chevron">
+          <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round">
+            <polyline points="2,4 5,7 8,4"/>
+          </svg>
+        </div>
+
+        <!-- Swizzey tray icon + lang badge -->
+        <div class="tray-swizzey">
+          <div class="tray-s-circle">S</div>
+          <div class="tray-lang-text">EN</div>
+        </div>
+
+        <!-- Network, Speaker, Battery (minimal SVG representations) -->
+        <div class="tray-sys">
+          <!-- Network -->
+          <svg class="tray-sys-icon" width="15" height="15" viewBox="0 0 24 24" fill="rgba(255,255,255,0.70)" stroke="none">
+            <path d="M1.5 8.5C5.4 4.6 10.4 2.5 12 2.5s6.6 2.1 10.5 6l-3 3c-2.7-2.7-5.6-4.5-7.5-4.5s-4.8 1.8-7.5 4.5l-3-3zm4.5 4.5c2.2-2.2 4.6-3.5 6-3.5s3.8 1.3 6 3.5l-3 3c-1.1-1.1-2.2-2-3-2s-1.9.9-3 2l-3-3zm4.5 4.5c1-.9 2-1.5 1.5-1.5s.5.6 1.5 1.5l-1.5 1.5-1.5-1.5z"/>
+          </svg>
+          <!-- Speaker -->
+          <svg class="tray-sys-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        </div>
+
+        <!-- Clock -->
+        <div class="taskbar-clock" style="position:relative;">
+          <div class="clock-time">16:42</div>
+          <div class="clock-date">08.06.2026</div>
+        </div>
+
+        <!-- Show desktop strip -->
+        <div style="width:4px; height:100%; background:rgba(255,255,255,0.05); flex-shrink:0;"></div>
+
+      </div><!-- /taskbar-tray -->
+
+    </div><!-- /taskbar -->
+
+  </div><!-- /desktop-frame -->
+</div><!-- /desktop-wrap -->
+
+<!-- ════════════════════════════════════════════
+     THEME SHOWCASE
+════════════════════════════════════════════ -->
+<hr class="divider">
+
+<section class="section">
+  <div class="section-label">Appearance</div>
+  <h2 class="section-title">Dark and Light themes</h2>
+  <p class="section-desc">The overlay matches the active Windows system theme automatically, or can be locked to Dark, Light, or Auto from Settings.</p>
+
+  <div class="themes-row">
+
+    <!-- Dark theme card -->
+    <div class="theme-card theme-card-dark">
+      <div class="theme-card-label">Dark theme</div>
+      <div class="mini-card dark">RU</div>
+      <div class="mini-taskbar">
+        <div class="mini-win-logo">
+          <span class="tl"></span><span class="tr"></span>
+          <span class="bl"></span><span class="br"></span>
+        </div>
+        <div class="mini-tb-sq"></div>
+        <div class="mini-tb-sq"></div>
+        <div class="mini-tb-sq"></div>
+      </div>
+    </div>
+
+    <!-- Light theme card -->
+    <div class="theme-card theme-card-light">
+      <div class="theme-card-label">Light theme</div>
+      <div class="mini-card light">EN</div>
+      <div class="mini-taskbar">
+        <div class="mini-win-logo">
+          <span class="tl"></span><span class="tr"></span>
+          <span class="bl"></span><span class="br"></span>
+        </div>
+        <div class="mini-tb-sq"></div>
+        <div class="mini-tb-sq"></div>
+        <div class="mini-tb-sq"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════ -->
+<hr class="divider">
+
+<section class="section">
+  <div class="section-label">Features</div>
+  <h2 class="section-title">Everything you need, nothing you don't</h2>
+  <p class="section-desc">Built for speed and silence — Swizzey Switch uses zero CPU when idle and never interrupts your workflow.</p>
+
+  <div class="features-grid">
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+      Centre-screen overlay
+    </div>
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Configurable duration
+    </div>
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+      Adjustable opacity
+    </div>
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+      </svg>
+      Dark / Light / Auto theme
+    </div>
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="17 11 21 7 17 3"/><line x1="21" y1="7" x2="9" y2="7"/><polyline points="7 21 3 17 7 13"/><line x1="15" y1="17" x2="3" y2="17"/>
+      </svg>
+      Flexible position
+    </div>
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-7 14h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2H10a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/>
+      </svg>
+      Skip fullscreen / games
+    </div>
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 16 16" fill="currentColor" stroke="none">
+        <path d="M0 0h7v7H0V0zm9 0h7v7H9V0zM0 9h7v7H0V9zm9 0h7v7H9V9z" opacity=".85"/>
+      </svg>
+      Runs at Windows startup
+    </div>
+
+    <div class="feature-pill">
+      <svg class="fp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      Zero CPU when idle
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     TRAY MENU
+════════════════════════════════════════════ -->
+<hr class="divider">
+
+<section class="section">
+  <div class="section-label">System Tray</div>
+  <h2 class="section-title">Always accessible, never intrusive</h2>
+  <p class="section-desc">Swizzey Switch lives quietly in the system tray. Right-click the icon for instant access to every control.</p>
+
+  <div class="tray-showcase">
+
+    <!-- Tray menu mockup -->
+    <div class="tray-mockup">
+      <div class="tray-mockup-header">
+        <div class="tm-logo">S</div>
+        <div>
+          <div class="tm-name">Swizzey Switch</div>
+          <div class="tm-ver">v1.0 &mdash; keyboard layout indicator</div>
+        </div>
+      </div>
+
+      <div class="tm-item bold">
+        <svg class="tm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Settings&hellip;
+      </div>
+
+      <div class="tm-sep"></div>
+
+      <div class="tm-item">
+        <svg class="tm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+        Disable Overlay
+      </div>
+
+      <div class="tm-item">
+        <svg class="tm-icon" viewBox="0 0 16 16" fill="currentColor" stroke="none">
+          <path d="M0 0h7v7H0V0zm9 0h7v7H9V0zM0 9h7v7H0V9zm9 0h7v7H9V9z" opacity=".7"/>
+        </svg>
+        Start with Windows
+        <div class="tm-check on"></div>
+      </div>
+
+      <div class="tm-sep"></div>
+
+      <div class="tm-item danger">
+        <svg class="tm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Exit
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="tray-desc">
+      <h3>Full control from the taskbar</h3>
+      <p>Every feature is a single right-click away. No separate launcher, no bloated UI — just a compact tray menu ready when you need it.</p>
+
+      <div class="tray-detail">
+        <div class="td-dot"></div>
+        <span><strong>Settings</strong> &mdash; Opens the settings window to configure duration, opacity, position, and theme.</span>
+      </div>
+      <div class="tray-detail">
+        <div class="td-dot"></div>
+        <span><strong>Disable / Enable Overlay</strong> &mdash; Toggle the overlay on or off instantly without quitting the app.</span>
+      </div>
+      <div class="tray-detail">
+        <div class="td-dot"></div>
+        <span><strong>Start with Windows</strong> &mdash; Registers or removes the autostart registry entry.</span>
+      </div>
+      <div class="tray-detail">
+        <div class="td-dot"></div>
+        <span><strong>Exit</strong> &mdash; Fully unloads Swizzey Switch from memory. No background processes remain.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     SETTINGS WINDOW
+════════════════════════════════════════════ -->
+<hr class="divider">
+
+<section class="section">
+  <div class="section-label">Settings</div>
+  <h2 class="section-title">Fine-tune every detail</h2>
+  <p class="section-desc">Adjust duration, opacity, position, vertical offset, theme, and behavior &mdash; all settings are saved automatically.</p>
+
+  <div class="settings-showcase">
+
+    <!-- Win11 title bar -->
+    <div class="settings-titlebar">
+      <div class="titlebar-icon">
+        <div class="s-badge">S</div>
+      </div>
+      <div class="titlebar-title">Swizzey Switch &mdash; Settings</div>
+      <!-- Win11 caption buttons -->
+      <div class="caption-btns">
+        <!-- Minimize -->
+        <div class="cap-btn">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linecap="round">
+            <line x1="1" y1="5" x2="9" y2="5"/>
+          </svg>
+        </div>
+        <!-- Restore -->
+        <div class="cap-btn">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linecap="round">
+            <rect x="1.5" y="1.5" width="7" height="7" rx="0.8"/>
+          </svg>
+        </div>
+        <!-- Close -->
+        <div class="cap-btn close-btn">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.3" stroke-linecap="round">
+            <line x1="1.5" y1="1.5" x2="8.5" y2="8.5"/>
+            <line x1="8.5" y1="1.5" x2="1.5" y2="8.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-body">
+
+      <!-- Overlay group -->
+      <div class="settings-group">
+        <div class="sg-header">Overlay</div>
+        <div class="sg-body">
+          <div class="sg-row">
+            <div class="sg-label">Duration:</div>
+            <div class="fake-slider s65"><div class="slider-thumb"></div></div>
+            <div class="sg-val">800 ms</div>
+          </div>
+          <div class="sg-row">
+            <div class="sg-label">Opacity:</div>
+            <div class="fake-slider s80"><div class="slider-thumb"></div></div>
+            <div class="sg-val">88%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appearance group -->
+      <div class="settings-group">
+        <div class="sg-header">Appearance</div>
+        <div class="sg-body">
+          <div class="sg-row">
+            <div class="sg-label">Position:</div>
+            <div class="fake-combo">Center <span class="combo-arrow">&#9660;</span></div>
+          </div>
+          <div class="sg-row">
+            <div class="sg-label">Offset Y:</div>
+            <div class="fake-slider s40"><div class="slider-thumb"></div></div>
+            <div class="sg-val">0 px</div>
+          </div>
+          <div class="sg-row">
+            <div class="sg-label">Theme:</div>
+            <div class="fake-combo">Dark <span class="combo-arrow">&#9660;</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Behavior group -->
+      <div class="settings-group">
+        <div class="sg-header">Behavior</div>
+        <div class="sg-body">
+          <div class="fake-cb">
+            <div class="cb-box checked"></div>
+            Skip fullscreen apps (games)
+          </div>
+          <div class="fake-cb">
+            <div class="cb-box unchecked"></div>
+            Start with Windows
+          </div>
+          <div class="fake-cb">
+            <div class="cb-box checked"></div>
+            Show language in tray
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="settings-footer">
+      <button class="win11-btn secondary">Preview</button>
+      <button class="win11-btn secondary">Cancel</button>
+      <button class="win11-btn primary">Save</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════ -->
+<footer class="footer">
+  <strong>Swizzey Switch</strong> &mdash; Keyboard layout indicator for Windows 11<br>
+  <span style="font-size:12px; margin-top:5px; display:block; opacity:.7;">Lightweight &bull; No telemetry &bull; Open source &bull; WPF &amp; .NET</span>
+</footer>
+
+</body>
+</html>

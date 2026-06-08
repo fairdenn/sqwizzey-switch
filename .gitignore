@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+publish/
+installer/
+
+# User-specific settings
+*.user
+*.suo
+.vs/
+
+# Logs and settings (runtime, not source)
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
